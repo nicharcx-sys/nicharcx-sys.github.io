@@ -3,43 +3,64 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Rocket Tool - Realtime Stock Prices</title>
+  <title>🚀 Rocket Tool — Realtime Stock Analyzer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body{font-family:Inter,system-ui,Arial,sans-serif;background:#fafafa;margin:0;color:#0f172a}
-    .wrap{max-width:800px;margin:20px auto;padding:18px}
-    .card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
-    header{display:flex;justify-content:space-between;align-items:center}
-    select,button{padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px}
-    .price{font-size:32px;font-weight:700;margin-top:10px}
-    .change{font-size:14px;margin-top:5px}
-    footer{margin-top:20px;color:#64748b;font-size:13px}
+    body{font-family:Inter,system-ui,Arial,sans-serif;background:#f9fafb;margin:0;color:#0f172a}
+    .wrap{max-width:900px;margin:20px auto;padding:16px}
+    .card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 6px 16px rgba(0,0,0,0.08)}
+    header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+    h2{margin:0;font-size:20px}
+    select{padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0;background:#fff}
+    .metrics{display:flex;gap:12px;margin:14px 0;flex-wrap:wrap}
+    .metric{flex:1;min-width:160px;background:#f8fafc;padding:10px;border-radius:10px}
+    .metric h3{margin:0;font-size:18px}
+    .metric p{margin:6px 0 0;font-size:13px;color:#64748b}
+    footer{margin-top:18px;color:#94a3b8;font-size:13px}
+    canvas{max-width:100%;margin-top:10px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <header>
-        <h2>✨ Rocket Tool — ราคาหุ้นเรียลไทม์</h2>
-        <div>
-          <select id="stockSelect">
-            <option value="RBRK">RBRK</option>
-            <option value="AAPL">AAPL</option>
-            <option value="MSFT">MSFT</option>
-            <option value="TSLA">TSLA</option>
-          </select>
-          <button id="refreshBtn">โหลดข้อมูล</button>
-        </div>
+        <h2>🚀 Rocket Tool — ราคาหุ้นเรียลไทม์พร้อมแนวรับแนวต้าน</h2>
+        <select id="stockSelect">
+          <option value="RBRK">RBRK</option>
+          <option value="AAPL">AAPL</option>
+          <option value="MSFT">MSFT</option>
+          <option value="TSLA">TSLA</option>
+          <option value="RKLB">RKLB</option>
+          <option value="EOSE">EOSE</option>
+          <option value="NAVD">NAVD</option>
+          <option value="PLTR">PLTR</option>
+        </select>
       </header>
 
-      <div id="output">
-        <div class="price" id="price">—</div>
-        <div class="change" id="change">รอโหลดข้อมูล...</div>
+      <div class="metrics">
+        <div class="metric">
+          <h3 id="price">—</h3><p>ราคาล่าสุด (USD)</p>
+        </div>
+        <div class="metric">
+          <h3 id="res1">—</h3><p>แนวต้าน 1</p>
+        </div>
+        <div class="metric">
+          <h3 id="res2">—</h3><p>แนวต้าน 2</p>
+        </div>
+        <div class="metric">
+          <h3 id="sup1">—</h3><p>แนวรับ 1</p>
+        </div>
+        <div class="metric">
+          <h3 id="sup2">—</h3><p>แนวรับ 2</p>
+        </div>
       </div>
 
+      <canvas id="chart" height="240"></canvas>
+
       <footer>
-        ดึงข้อมูลเรียลไทม์จาก <strong>Alpha Vantage</strong> ด้วย API Key จริงของคุณ<br>
-        หมายเหตุ: จำกัด 25 ครั้งต่อนาที (หากเกินระบบจะชะลอการตอบกลับ)
+        ดึงข้อมูลจาก <strong>Alpha Vantage API</strong> (จำกัด 5 ครั้งต่อนาที)<br>
+        หากข้อมูลไม่อัปเดต ให้รอสักครู่ก่อนเปลี่ยนหุ้นใหม่
       </footer>
     </div>
   </div>
@@ -47,44 +68,88 @@
   <script>
     const API_KEY = "4F4NRBC1I6SEAE4W";
     const select = document.getElementById("stockSelect");
-    const btn = document.getElementById("refreshBtn");
-    const priceEl = document.getElementById("price");
-    const changeEl = document.getElementById("change");
+    const ctx = document.getElementById("chart").getContext("2d");
+    let chart;
 
-    async function fetchRealtime(symbol) {
-      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`;
+    async function fetchStockData(symbol) {
+      const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
       const res = await fetch(url);
       const data = await res.json();
-      if (!data["Global Quote"]) throw new Error("ไม่พบข้อมูลจาก API");
-
-      const q = data["Global Quote"];
-      const price = parseFloat(q["05. price"]);
-      const change = parseFloat(q["09. change"]);
-      const percent = parseFloat(q["10. change percent"]);
-
-      return { price, change, percent };
+      const series = data["Time Series (Daily)"];
+      if (!series) throw new Error("ไม่พบข้อมูลจาก API");
+      const dates = Object.keys(series).slice(0, 30).reverse();
+      const closes = dates.map(d => parseFloat(series[d]["4. close"]));
+      const highs = dates.map(d => parseFloat(series[d]["2. high"]));
+      const lows = dates.map(d => parseFloat(series[d]["3. low"]));
+      return { dates, closes, highs, lows };
     }
 
-    async function updateData() {
+    function calcLevels(highs, lows) {
+      const high30 = Math.max(...highs);
+      const low30 = Math.min(...lows);
+      const avgHigh5 = highs.slice(-5).reduce((a,b)=>a+b,0)/5;
+      const avgLow5 = lows.slice(-5).reduce((a,b)=>a+b,0)/5;
+      return { res1: avgHigh5, res2: high30, sup1: avgLow5, sup2: low30 };
+    }
+
+    function renderChart(dates, closes, levels) {
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: dates,
+          datasets: [
+            {
+              label: "ราคาปิด (USD)",
+              data: closes,
+              borderColor: "#0ea5a4",
+              backgroundColor: "rgba(14,165,164,0.15)",
+              fill: true,
+              tension: 0.25
+            },
+            {
+              label: "แนวต้าน1",
+              data: new Array(dates.length).fill(levels.res1),
+              borderColor: "#ef4444",
+              borderDash: [5,5],
+              fill: false
+            },
+            {
+              label: "แนวรับ1",
+              data: new Array(dates.length).fill(levels.sup1),
+              borderColor: "#3b82f6",
+              borderDash: [5,5],
+              fill: false
+            }
+          ]
+        },
+        options: {
+          plugins: { legend: { display: true } },
+          scales: { x: { display: true }, y: { beginAtZero: false } }
+        }
+      });
+    }
+
+    async function updateStock() {
       const symbol = select.value;
-      priceEl.textContent = "กำลังโหลด...";
-      changeEl.textContent = "";
-      btn.disabled = true;
       try {
-        const d = await fetchRealtime(symbol);
-        priceEl.textContent = `${symbol} : $${d.price.toFixed(2)}`;
-        const sign = d.change >= 0 ? "+" : "";
-        changeEl.style.color = d.change >= 0 ? "#16a34a" : "#dc2626";
-        changeEl.textContent = `${sign}${d.change.toFixed(2)} (${sign}${d.percent.toFixed(2)}%)`;
-      } catch (e) {
-        priceEl.textContent = "เกิดข้อผิดพลาด";
-        changeEl.textContent = e.message;
+        const { dates, closes, highs, lows } = await fetchStockData(symbol);
+        const price = closes[closes.length - 1];
+        const levels = calcLevels(highs, lows);
+        document.getElementById("price").textContent = `$${price.toFixed(2)}`;
+        document.getElementById("res1").textContent = levels.res1.toFixed(2);
+        document.getElementById("res2").textContent = levels.res2.toFixed(2);
+        document.getElementById("sup1").textContent = levels.sup1.toFixed(2);
+        document.getElementById("sup2").textContent = levels.sup2.toFixed(2);
+        renderChart(dates, closes, levels);
+      } catch (err) {
+        console.error(err);
+        alert("โหลดข้อมูลล้มเหลว: " + err.message);
       }
-      btn.disabled = false;
     }
 
-    btn.addEventListener("click", updateData);
-    updateData(); // โหลดอัตโนมัติครั้งแรก
+    select.addEventListener("change", updateStock);
+    updateStock(); // โหลดทันทีตอนเปิดเว็บ
   </script>
 </body>
 </html>
