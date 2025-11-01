@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🚀 Rocket Tool - Real-Time Stock Viewer</title>
+  <title>🚀 Rocket Tool Pro - Real-Time Stock Viewer</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -14,20 +14,17 @@
       margin: 0;
       padding: 20px;
     }
-    h1 {
-      color: #00ffcc;
-    }
-    input {
+    h1 { color: #00ffcc; }
+    input, select {
       padding: 10px;
-      font-size: 16px;
+      margin: 5px;
       border-radius: 10px;
-      margin-bottom: 15px;
-      width: 250px;
-      text-align: center;
-      border: 1px solid #00ffcc;
       background: #111;
+      border: 1px solid #00ffcc;
       color: #00ffcc;
+      text-align: center;
     }
+    label { margin: 0 10px; color: #ccc; }
     #chartContainer {
       width: 95%;
       max-width: 900px;
@@ -35,125 +32,101 @@
       background: #111;
       padding: 20px;
       border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
-    }
-    .info {
-      margin-top: 15px;
-      font-size: 18px;
+      box-shadow: 0 0 20px rgba(0,255,204,0.3);
     }
   </style>
 </head>
 <body>
-  <h1>🚀 Rocket Tool</h1>
-  <p>Real-Time Stock Viewer + แนวรับแนวต้านอัตโนมัติ</p>
+  <h1>🚀 Rocket Tool Pro</h1>
+  <p>Real-Time Stock Viewer + แนวรับ แนวต้าน + ปรับกราฟได้เอง</p>
 
-  <input id="symbolInput" type="text" placeholder="พิมพ์ชื่อหุ้น เช่น AAPL, TSLA, SOFI..." />
-  <div id="chartContainer">
-    <canvas id="stockChart"></canvas>
+  <div>
+    <input id="symbolInput" placeholder="พิมพ์ชื่อหุ้น เช่น AAPL, TSLA..." />
+    <label>วันย้อนหลัง</label>
+    <select id="daysSelect">
+      <option value="7">7 วัน</option>
+      <option value="30" selected>30 วัน</option>
+      <option value="90">90 วัน</option>
+    </select>
+    <label>สีเส้น</label>
+    <input type="color" id="colorPicker" value="#00ffcc" />
+    <label>ความหนา</label>
+    <input type="number" id="lineWidth" value="2" min="1" max="5" style="width:60px"/>
+    <label><input type="checkbox" id="toggleSR" checked/> แนวรับ/แนวต้าน</label>
   </div>
-  <div class="info" id="info"></div>
+
+  <div id="chartContainer"><canvas id="stockChart"></canvas></div>
+  <div id="info" style="margin-top:15px;font-size:18px;"></div>
 
   <script>
     const apiKey = "4F4NRBC1I6SEAE4W";
     const ctx = document.getElementById("stockChart").getContext("2d");
     let chart;
 
-    document.getElementById("symbolInput").addEventListener("change", () => {
-      const symbol = document.getElementById("symbolInput").value.trim().toUpperCase();
-      if (symbol) fetchData(symbol);
-    });
-
     async function fetchData(symbol) {
+      const days = parseInt(document.getElementById("daysSelect").value);
       document.getElementById("info").innerText = "⏳ กำลังดึงข้อมูล...";
       try {
         const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`);
         const data = await res.json();
-        const timeSeries = data["Time Series (Daily)"];
-        if (!timeSeries) throw new Error("ไม่พบข้อมูลหุ้น");
+        const series = data["Time Series (Daily)"];
+        if (!series) throw new Error("ไม่พบข้อมูลหุ้น");
+        const dates = Object.keys(series).slice(0, days).reverse();
+        const closes = dates.map(d => parseFloat(series[d]["4. close"]));
+        const highs = dates.map(d => parseFloat(series[d]["2. high"]));
+        const lows = dates.map(d => parseFloat(series[d]["3. low"]));
 
-        const dates = Object.keys(timeSeries).slice(0, 30).reverse();
-        const prices = dates.map(d => parseFloat(timeSeries[d]["4. close"]));
-        const highs = dates.map(d => parseFloat(timeSeries[d]["2. high"]));
-        const lows = dates.map(d => parseFloat(timeSeries[d]["3. low"]));
-
-        const sup1 = average(lows.slice(-5));
-        const res1 = average(highs.slice(-5));
+        const sup1 = avg(lows.slice(-5));
+        const res1 = avg(highs.slice(-5));
         const sup2 = Math.min(...lows);
         const res2 = Math.max(...highs);
 
-        updateChart(symbol, dates, prices, [sup1, sup2], [res1, res2]);
-        const lastPrice = prices[prices.length - 1];
+        drawChart(symbol, dates, closes, [sup1, sup2], [res1, res2]);
+        const last = closes[closes.length - 1];
         document.getElementById("info").innerHTML = `
-          📈 <b>${symbol}</b> ราคาปัจจุบัน: <span style="color:#00ffcc">${lastPrice.toFixed(2)}</span><br>
+          📈 <b>${symbol}</b> ราคาปัจจุบัน: <span style="color:#00ffcc">${last.toFixed(2)}</span><br>
           🟩 แนวรับ: ${sup1.toFixed(2)} / ${sup2.toFixed(2)}<br>
           🟥 แนวต้าน: ${res1.toFixed(2)} / ${res2.toFixed(2)}
         `;
-      } catch (e) {
-        document.getElementById("info").innerText = "❌ เกิดข้อผิดพลาด: " + e.message;
+      } catch (err) {
+        document.getElementById("info").innerText = "❌ " + err.message;
       }
     }
 
-    function average(arr) {
-      return arr.reduce((a, b) => a + b, 0) / arr.length;
-    }
+    function avg(a){ return a.reduce((x,y)=>x+y,0)/a.length; }
 
-    function updateChart(symbol, labels, prices, supports, resistances) {
+    function drawChart(symbol, labels, data, supports, resistances){
       if (chart) chart.destroy();
+      const color = document.getElementById("colorPicker").value;
+      const width = parseInt(document.getElementById("lineWidth").value);
+      const showSR = document.getElementById("toggleSR").checked;
+      const datasets = [
+        { label: `${symbol}`, data, borderColor: color, borderWidth: width, tension: 0.2 }
+      ];
+      if(showSR){
+        datasets.push(
+          { label:"แนวรับ", data:Array(data.length).fill(supports[0]), borderColor:"#00cc66", borderDash:[5,5], pointRadius:0 },
+          { label:"แนวรับลึก", data:Array(data.length).fill(supports[1]), borderColor:"#009944", borderDash:[5,5], pointRadius:0 },
+          { label:"แนวต้าน", data:Array(data.length).fill(resistances[0]), borderColor:"#ff3333", borderDash:[5,5], pointRadius:0 },
+          { label:"แนวต้านสูงสุด", data:Array(data.length).fill(resistances[1]), borderColor:"#cc0000", borderDash:[5,5], pointRadius:0 }
+        );
+      }
       chart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: `${symbol} (ราคาปิด)`,
-              data: prices,
-              borderColor: "#00ffcc",
-              tension: 0.2,
-            },
-            {
-              label: "แนวรับ",
-              data: Array(prices.length).fill(supports[0]),
-              borderColor: "#00cc66",
-              borderDash: [5, 5],
-              pointRadius: 0,
-            },
-            {
-              label: "แนวรับลึก",
-              data: Array(prices.length).fill(supports[1]),
-              borderColor: "#009944",
-              borderDash: [5, 5],
-              pointRadius: 0,
-            },
-            {
-              label: "แนวต้าน",
-              data: Array(prices.length).fill(resistances[0]),
-              borderColor: "#ff3333",
-              borderDash: [5, 5],
-              pointRadius: 0,
-            },
-            {
-              label: "แนวต้านสูงสุด",
-              data: Array(prices.length).fill(resistances[1]),
-              borderColor: "#cc0000",
-              borderDash: [5, 5],
-              pointRadius: 0,
-            }
-          ],
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { ticks: { color: "#ccc" } },
-            y: { ticks: { color: "#ccc" } },
-          },
-          plugins: {
-            legend: {
-              labels: { color: "#fff" },
-            },
-          },
-        },
+        type:"line",
+        data:{ labels, datasets },
+        options:{
+          responsive:true,
+          scales:{ x:{ticks:{color:"#ccc"}}, y:{ticks:{color:"#ccc"}} },
+          plugins:{ legend:{labels:{color:"#fff"}} }
+        }
       });
     }
+
+    // 🔍 เมื่อพิมพ์ชื่อหุ้นแล้วกด Enter
+    document.getElementById("symbolInput").addEventListener("change", e => {
+      const s = e.target.value.trim().toUpperCase();
+      if(s) fetchData(s);
+    });
   </script>
 </body>
 </html>
