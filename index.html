@@ -1,0 +1,163 @@
+<!doctype html>
+
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rocket Tool - Mini Stocks Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#fafafa;--card:#ffffff;--muted:#6b7280;--accent:#0ea5a4}
+    *{box-sizing:border-box}body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);margin:0;color:#0f172a}
+    .wrap{max-width:920px;margin:20px auto;padding:18px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(12,13,14,0.06)}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .title{font-weight:700;font-size:20px}
+    .subtitle{color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;align-items:center}
+    select,button{padding:8px 10px;border-radius:8px;border:1px solid #e6e9ee;background:#fff}
+    .metrics{display:flex;gap:12px;margin:12px 0}
+    .metric{background:#f8fafc;padding:10px;border-radius:10px;flex:1}
+    .metric h3{margin:0;font-size:16px}
+    .metric p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .chart-wrap{margin-top:10px}
+    .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .legend .item{font-size:13px;color:var(--muted)}
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    @media (max-width:640px){.metrics{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div>
+          <div class="title">✨ Rocket Tool</div>
+          <div class="subtitle">ข้อมูลหุ้น — ตัวอย่างแบบเบา</div>
+        </div>
+        <div class="controls">
+          <label style="font-size:13px;color:var(--muted)">หุ้น</label>
+          <select id="stockSelect"></select>
+          <button id="refreshBtn">โหลดข้อมูล</button>
+        </div>
+      </header><div class="metrics">
+    <div class="metric">
+      <h3 id="price">-</h3>
+      <p>ราคา (USD)</p>
+    </div>
+    <div class="metric">
+      <h3 id="rsi">-</h3>
+      <p>RSI (ตัวอย่าง)</p>
+    </div>
+    <div class="metric">
+      <h3 id="trend">-</h3>
+      <p>แนวรับ / แนวต้าน (ตัวอย่าง)</p>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <canvas id="priceChart" height="200"></canvas>
+    <div class="legend">
+      <div class="item">แนวต้าน2: <strong id="res2">-</strong></div>
+      <div class="item">แนวต้าน1: <strong id="res1">-</strong></div>
+      <div class="item">แนวรับ1: <strong id="sup1">-</strong></div>
+      <div class="item">แนวรับ2: <strong id="sup2">-</strong></div>
+    </div>
+  </div>
+
+  <footer>
+    ตัวอย่างนี้ใช้ข้อมูลตัวอย่างในเครื่อง (offline) — หากต้องการข้อมูลเรียลไทม์ ให้เตรียม API Key จากผู้ให้บริการหุ้น เช่น AlphaVantage / Finnhub แล้ววาง URL ในการตั้งค่า
+  </footer>
+</div>
+
+<div style="height:12px"></div>
+
+<div class="card">
+  <h4 style="margin:0 0 10px 0">วิธีใช้งาน & ปรับใช้งานจริง</h4>
+  <ol>
+    <li>ไฟล์นี้เป็นไฟล์เดียว (index.html) — คัดลอกไปไว้ใน repository บน GitHub</li>
+    <li>ถ้าต้องการข้อมูลเรียลไทม์ ให้แก้ฟังก์ชัน <code>fetchLiveData()</code> ในสคริปต์ (มีตัวอย่างโค้ดคอมเมนต์ไว้)</li>
+    <li>เปิด GitHub Pages: ใน repository เลือก Settings → Pages → เลือก branch main → Save — เว็บไซต์จะถูกเผยแพร่ฟรี</li>
+    <li>ถ้าต้องการให้ผมช่วยปรับให้เชื่อม API ที่คุณมี ให้ส่ง API endpoint และตัวอย่าง JSON มาได้</li>
+  </ol>
+</div>
+
+  </div>  <!-- Libraries -->  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <script>
+    // ======= ตัวอย่างข้อมูลหุ้น (mock) =======
+    const STOCKS = {
+      RBRK: {name:'RBRK', price:71.92, series: genSeries(30,78,72)},
+      AAPL: {name:'AAPL', price:192.34, series: genSeries(30,210,190)},
+      MSFT: {name:'MSFT', price:330.12, series: genSeries(30,350,320)},
+      TSLA: {name:'TSLA', price:215.66, series: genSeries(30,250,200)}
+    };
+
+    // helpers
+    function genSeries(days, center, spread){
+      const arr=[];let v=center;for(let i=0;i<days;i++){v += (Math.random()-0.45)*spread*0.03;arr.push(Number(v.toFixed(2)));}return arr;
+    }
+
+    // populate select
+    const select = document.getElementById('stockSelect');
+    Object.keys(STOCKS).forEach(sym=>{
+      const o=document.createElement('option');o.value=sym;o.textContent=sym+' — '+STOCKS[sym].name;select.appendChild(o);
+    });
+
+    // Chart
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    const labels = Array.from({length:30},(_,i)=>`-${29-i}d`);
+    const chart = new Chart(ctx, {
+      type:'line',data:{labels, datasets:[{label:'Price',data:STOCKS.RBRK.series,fill:true, tension:0.25,borderWidth:2}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}
+    }});
+
+    function updateUI(sym){
+      const s = STOCKS[sym];
+      // update metrics
+      document.getElementById('price').textContent = s.price.toFixed(2) + ' USD';
+      document.getElementById('rsi').textContent = (calcRSI(s.series)).toFixed(2);
+      const res1 = (Math.max(...s.series)*0.98).toFixed(2);
+      const res2 = (Math.max(...s.series)*1.05).toFixed(2);
+      const sup1 = (Math.min(...s.series)*1.02).toFixed(2);
+      const sup2 = (Math.min(...s.series)*0.95).toFixed(2);
+      document.getElementById('res1').textContent=res1;document.getElementById('res2').textContent=res2;document.getElementById('sup1').textContent=sup1;document.getElementById('sup2').textContent=sup2;
+      // update chart
+      chart.data.datasets[0].data = s.series;
+      chart.update();
+    }
+
+    // simple RSI calc (not production ready) on close prices
+    function calcRSI(series, period=14){
+      let gains=0, losses=0; for(let i=1;i<series.length;i++){ const d=series[i]-series[i-1]; if(d>0) gains+=d; else losses+=Math.abs(d);} const avgGain=gains/(series.length-1); const avgLoss=losses/(series.length-1); if(avgLoss===0) return 100; const rs = avgGain/avgLoss; return 100 - (100/(1+rs));
+    }
+
+    // Mock "live" fetch function: replace body to call real API
+    async function fetchLiveData(symbol){
+      // EXAMPLE: If you have an API that returns daily close prices in JSON, replace this
+      // const res = await fetch(`https://api.example.com/quote?symbol=${symbol}&apikey=YOUR_KEY`);
+      // const json = await res.json();
+      // parse json to generate array of prices: json.prices -> [..]
+      // For now we return the built-in mock with slight random walk to simulate live update
+      const base = STOCKS[symbol];
+      const newSeries = base.series.slice();
+      const last = newSeries[newSeries.length-1];
+      const next = Number((last * (1 + (Math.random()-0.48)*0.02)).toFixed(2));
+      newSeries.push(next); newSeries.shift();
+      return {price: next, series: newSeries};
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', async ()=>{
+      const sym = select.value;
+      document.getElementById('refreshBtn').textContent='กำลังโหลด...';
+      try{
+        const live = await fetchLiveData(sym);
+        STOCKS[sym].price = live.price; STOCKS[sym].series = live.series;
+        updateUI(sym);
+      }catch(e){alert('โหลดข้อมูลล้มเหลว: '+e.message)}
+      document.getElementById('refreshBtn').textContent='โหลดข้อมูล';
+    });
+
+    // init
+    select.value='RBRK'; updateUI('RBRK');
+
+  </script></body>
+</html>
