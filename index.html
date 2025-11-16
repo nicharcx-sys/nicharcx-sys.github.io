@@ -1,153 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>Game Shop</title>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background: #111;
-            color: white;
-            transition: 0.2s;
-        }
-
-        /* THEMES */
-        body.dark { background:#111; color:white; }
-        body.neon { background:#050014; color:#ff009d; }
-        body.blue { background:#0a1e3f; color:#8ecbff; }
-
-        .theme-btn {
-            padding: 8px 15px;
-            border: none;
-            cursor: pointer;
-            margin-right: 5px;
-            border-radius: 8px;
-            font-weight: bold;
-            background: #333;
-            color: white;
-        }
-
-        .login-box, .shop-box {
-            width: 350px;
-            margin: 60px auto;
-            background: rgba(255,255,255,0.05);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-        }
-
-        input {
-            width: 90%;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            margin-bottom: 12px;
-            outline: none;
-        }
-
-        button {
-            padding: 12px;
-            width: 100%;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-            font-weight: bold;
-            background: #e94560;
-            color: white;
-            cursor: pointer;
-        }
-
-        .product {
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border: 2px solid #0f3460;
-            box-shadow: 0 0 10px #e94560;
-        }
-
-    </style>
+<meta charset="UTF-8">
+<title>Game Shop</title>
+<style>
+body {
+  margin:0; 
+  font-family: Poppins, sans-serif;
+  background: linear-gradient(135deg, #6b00d6, #0077ff);
+  color:white;
+  text-align:center;
+}
+.container {
+  width: 90%;
+  max-width: 400px;
+  margin: 60px auto;
+  background: rgba(255,255,255,0.15);
+  padding: 25px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+}
+input {
+  background: rgba(255,255,255,0.3);
+  color: white;
+}
+button {
+  background:white;
+  color: #6b00d6;
+  font-weight: bold;
+  cursor:pointer;
+}
+.anime {
+  width:120px;
+  animation: float 1.8s infinite alternate ease-in-out;
+}
+@keyframes float {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-15px); }
+}
+.shop-item {
+  background: rgba(0,0,0,0.3);
+  padding:15px;
+  border-radius:12px;
+  margin-top:10px;
+  display:flex;
+  justify-content:space-between;
+}
+.key-box {
+  margin-top:10px;
+  background: rgba(255,255,255,0.2);
+  padding:10px;
+  border-radius:10px;
+  word-break:break-all;
+}
+</style>
 </head>
-<body class="dark">
+<body>
 
-<center style="margin-top:15px;">
-    <button class="theme-btn" onclick="changeTheme('dark')">Dark</button>
-    <button class="theme-btn" onclick="changeTheme('neon')">Neon</button>
-    <button class="theme-btn" onclick="changeTheme('blue')">Blue</button>
-</center>
-
-<!-- LOGIN -->
-<div class="login-box" id="loginBox">
-    <h2 style="text-align:center;">🔐 Login</h2>
-    <input id="user" placeholder="Username">
-    <input id="pass" type="password" placeholder="Password">
-    <button onclick="login()">เข้าสู่ระบบ</button>
-    <p id="loginMsg" style="text-align:center;margin-top:10px;"></p>
+<div id="login" class="container">
+  <h2>เข้าสู่ระบบ</h2>
+  <img class="anime" src="https://i.imgur.com/0y8Ftya.png">
+  <input id="loginEmail" placeholder="อีเมล">
+  <input id="loginPass" type="password" placeholder="รหัสผ่าน">
+  <button onclick="login()">เข้าสู่ระบบ</button>
+  <p style="cursor:pointer;text-decoration:underline" onclick="showSignup()">สมัครสมาชิก</p>
 </div>
 
-<!-- SHOP -->
-<div class="shop-box" id="shopBox" style="display:none;">
-    <h2 style="text-align:center;">🎮 Game Shop</h2>
+<div id="signup" class="container" style="display:none;">
+  <h2>สมัครสมาชิก</h2>
+  <img class="anime" src="https://i.imgur.com/0y8Ftya.png">
+  <input id="regEmail" placeholder="อีเมล">
+  <input id="regPass" type="password" placeholder="รหัสผ่าน">
+  <input id="regPass2" type="password" placeholder="ยืนยันรหัสผ่าน">
+  <button onclick="signup()">สมัครสมาชิก</button>
+  <p style="cursor:pointer;text-decoration:underline" onclick="showLogin()">กลับไปเข้าสู่ระบบ</p>
+</div>
 
-    <div class="product">
-        <h3>ดาบแสง</h3>
-        <p>ราคา: 150 บาท</p>
-        <button onclick="buy()">ซื้อสินค้า</button>
-    </div>
+<div id="shop" class="container" style="display:none;">
+  <h2>ร้านค้าเกม</h2>
+  <p id="userEmail"></p>
+  <p>เหรียญ: <span id="coins">200</span></p>
 
-    <h3>ใส่คีย์สินค้า</h3>
-    <input id="keyInput" placeholder="เช่น KEY-TEST">
-    <button onclick="redeemKey()">ยืนยัน</button>
-    <p id="result"></p>
+  <div class="shop-item">
+    <span>Premium Sword</span><span>50</span>
+    <button onclick="buy('Premium Sword',50)">ซื้อ</button>
+  </div>
 
-    <button style="margin-top:15px;background:#444;" onclick="logout()">ออกจากระบบ</button>
+  <div class="shop-item">
+    <span>VIP Badge</span><span>70</span>
+    <button onclick="buy('VIP Badge',70)">ซื้อ</button>
+  </div>
+
+  <div class="shop-item">
+    <span>Mystic Skin</span><span>100</span>
+    <button onclick="buy('Mystic Skin',100)">ซื้อ</button>
+  </div>
+
+  <h3>คีย์ของคุณ</h3>
+  <div id="keys"></div>
+
+  <button style="margin-top:20px;background:#ff4a4a;color:white;" onclick="logout()">ออกจากระบบ</button>
 </div>
 
 <script>
-    // ---------- Login System ----------
-    function login() {
-        let u = document.getElementById("user").value;
-        let p = document.getElementById("pass").value;
-        let msg = document.getElementById("loginMsg");
+let coins = 200;
+let keys = [];
+let users = {}; // จำลองฐานข้อมูล
 
-        if (u === "admin" && p === "1234") {
-            msg.innerHTML = "เข้าสู่ระบบสำเร็จ!";
-            document.getElementById("loginBox").style.display = "none";
-            document.getElementById("shopBox").style.display = "block";
-        } else {
-            msg.innerHTML = "❌ ชื่อผู้ใช้หรือรหัสผ่านผิด";
-        }
-    }
+function showSignup(){
+  login.style.display="none";
+  signup.style.display="block";
+}
+function showLogin(){
+  signup.style.display="none";
+  login.style.display="block";
+}
+function showShop(){
+  login.style.display="none";
+  signup.style.display="none";
+  shop.style.display="block";
+}
 
-    function logout() {
-        document.getElementById("shopBox").style.display = "none";
-        document.getElementById("loginBox").style.display = "block";
-    }
+// SIGNUP
+function signup(){
+  let email = regEmail.value;
+  let pass = regPass.value;
+  let pass2 = regPass2.value;
 
-    // ---------- Buy Product ----------
-    function buy() {
-        alert("สั่งซื้อสำเร็จ! (ตัวอย่าง)");
-    }
+  if(pass !== pass2) return alert("รหัสไม่ตรงกัน");
+  if(users[email]) return alert("อีเมลนี้มีอยู่แล้ว");
 
-    // ---------- Key Redeem ----------
-    function redeemKey() {
-        let key = document.getElementById("keyInput").value;
-        let result = document.getElementById("result");
+  users[email] = pass;
+  alert("สมัครสมาชิกสำเร็จ!");
+  showLogin();
+}
 
-        if (key === "KEY-TEST") {
-            result.innerHTML = "✔ ปลดล็อกสำเร็จ!";
-        } else {
-            result.innerHTML = "❌ คีย์ไม่ถูกต้อง";
-        }
-    }
+// LOGIN
+function login(){
+  let email = loginEmail.value;
+  let pass = loginPass.value;
 
-    // ---------- Theme Change ----------
-    function changeTheme(theme) {
-        document.body.className = theme;
-    }
+  if(users[email] === pass){
+    userEmail.textContent = email;
+    showShop();
+  } else {
+    alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+  }
+}
+
+// BUY ITEM
+function buy(name, price){
+  if(coins < price) return alert("เหรียญไม่พอ!");
+
+  coins -= price;
+  document.getElementById("coins").textContent = coins;
+
+  let key = name + "-KEY-" + Math.random().toString(36).substring(6);
+  keys.push(key);
+
+  let box = document.createElement("div");
+  box.className = "key-box";
+  box.textContent = key;
+  document.getElementById("keys").appendChild(box);
+
+  alert("ซื้อสำเร็จ! ได้รับคีย์แล้ว");
+}
+
+// LOGOUT
+function logout(){
+  shop.style.display="none";
+  login.style.display="block";
+}
 </script>
 
 </body>
