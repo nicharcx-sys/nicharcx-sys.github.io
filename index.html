@@ -1,132 +1,154 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🚀 Rocket Tool Pro - Real-Time Stock Viewer</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: "Prompt", sans-serif;
-      background: #0a0a0a;
-      color: #fff;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 { color: #00ffcc; }
-    input, select {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 10px;
-      background: #111;
-      border: 1px solid #00ffcc;
-      color: #00ffcc;
-      text-align: center;
-    }
-    label { margin: 0 10px; color: #ccc; }
-    #chartContainer {
-      width: 95%;
-      max-width: 900px;
-      margin: 0 auto;
-      background: #111;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(0,255,204,0.3);
-    }
-  </style>
-</head>
-<body>
-  <h1>🚀 Rocket Tool Pro</h1>
-  <p>Real-Time Stock Viewer + แนวรับ แนวต้าน + ปรับกราฟได้เอง</p>
+    <meta charset="UTF-8">
+    <title>Game Shop</title>
 
-  <div>
-    <input id="symbolInput" placeholder="พิมพ์ชื่อหุ้น เช่น AAPL, TSLA..." />
-    <label>วันย้อนหลัง</label>
-    <select id="daysSelect">
-      <option value="7">7 วัน</option>
-      <option value="30" selected>30 วัน</option>
-      <option value="90">90 วัน</option>
-    </select>
-    <label>สีเส้น</label>
-    <input type="color" id="colorPicker" value="#00ffcc" />
-    <label>ความหนา</label>
-    <input type="number" id="lineWidth" value="2" min="1" max="5" style="width:60px"/>
-    <label><input type="checkbox" id="toggleSR" checked/> แนวรับ/แนวต้าน</label>
-  </div>
-
-  <div id="chartContainer"><canvas id="stockChart"></canvas></div>
-  <div id="info" style="margin-top:15px;font-size:18px;"></div>
-
-  <script>
-    const apiKey = "4F4NRBC1I6SEAE4W";
-    const ctx = document.getElementById("stockChart").getContext("2d");
-    let chart;
-
-    async function fetchData(symbol) {
-      const days = parseInt(document.getElementById("daysSelect").value);
-      document.getElementById("info").innerText = "⏳ กำลังดึงข้อมูล...";
-      try {
-        const res = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`);
-        const data = await res.json();
-        const series = data["Time Series (Daily)"];
-        if (!series) throw new Error("ไม่พบข้อมูลหุ้น");
-        const dates = Object.keys(series).slice(0, days).reverse();
-        const closes = dates.map(d => parseFloat(series[d]["4. close"]));
-        const highs = dates.map(d => parseFloat(series[d]["2. high"]));
-        const lows = dates.map(d => parseFloat(series[d]["3. low"]));
-
-        const sup1 = avg(lows.slice(-5));
-        const res1 = avg(highs.slice(-5));
-        const sup2 = Math.min(...lows);
-        const res2 = Math.max(...highs);
-
-        drawChart(symbol, dates, closes, [sup1, sup2], [res1, res2]);
-        const last = closes[closes.length - 1];
-        document.getElementById("info").innerHTML = `
-          📈 <b>${symbol}</b> ราคาปัจจุบัน: <span style="color:#00ffcc">${last.toFixed(2)}</span><br>
-          🟩 แนวรับ: ${sup1.toFixed(2)} / ${sup2.toFixed(2)}<br>
-          🟥 แนวต้าน: ${res1.toFixed(2)} / ${res2.toFixed(2)}
-        `;
-      } catch (err) {
-        document.getElementById("info").innerText = "❌ " + err.message;
-      }
-    }
-
-    function avg(a){ return a.reduce((x,y)=>x+y,0)/a.length; }
-
-    function drawChart(symbol, labels, data, supports, resistances){
-      if (chart) chart.destroy();
-      const color = document.getElementById("colorPicker").value;
-      const width = parseInt(document.getElementById("lineWidth").value);
-      const showSR = document.getElementById("toggleSR").checked;
-      const datasets = [
-        { label: `${symbol}`, data, borderColor: color, borderWidth: width, tension: 0.2 }
-      ];
-      if(showSR){
-        datasets.push(
-          { label:"แนวรับ", data:Array(data.length).fill(supports[0]), borderColor:"#00cc66", borderDash:[5,5], pointRadius:0 },
-          { label:"แนวรับลึก", data:Array(data.length).fill(supports[1]), borderColor:"#009944", borderDash:[5,5], pointRadius:0 },
-          { label:"แนวต้าน", data:Array(data.length).fill(resistances[0]), borderColor:"#ff3333", borderDash:[5,5], pointRadius:0 },
-          { label:"แนวต้านสูงสุด", data:Array(data.length).fill(resistances[1]), borderColor:"#cc0000", borderDash:[5,5], pointRadius:0 }
-        );
-      }
-      chart = new Chart(ctx, {
-        type:"line",
-        data:{ labels, datasets },
-        options:{
-          responsive:true,
-          scales:{ x:{ticks:{color:"#ccc"}}, y:{ticks:{color:"#ccc"}} },
-          plugins:{ legend:{labels:{color:"#fff"}} }
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #111;
+            color: white;
+            transition: 0.2s;
         }
-      });
+
+        /* THEMES */
+        body.dark { background:#111; color:white; }
+        body.neon { background:#050014; color:#ff009d; }
+        body.blue { background:#0a1e3f; color:#8ecbff; }
+
+        .theme-btn {
+            padding: 8px 15px;
+            border: none;
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 8px;
+            font-weight: bold;
+            background: #333;
+            color: white;
+        }
+
+        .login-box, .shop-box {
+            width: 350px;
+            margin: 60px auto;
+            background: rgba(255,255,255,0.05);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        input {
+            width: 90%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        button {
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            background: #e94560;
+            color: white;
+            cursor: pointer;
+        }
+
+        .product {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 2px solid #0f3460;
+            box-shadow: 0 0 10px #e94560;
+        }
+
+    </style>
+</head>
+<body class="dark">
+
+<center style="margin-top:15px;">
+    <button class="theme-btn" onclick="changeTheme('dark')">Dark</button>
+    <button class="theme-btn" onclick="changeTheme('neon')">Neon</button>
+    <button class="theme-btn" onclick="changeTheme('blue')">Blue</button>
+</center>
+
+<!-- LOGIN -->
+<div class="login-box" id="loginBox">
+    <h2 style="text-align:center;">🔐 Login</h2>
+    <input id="user" placeholder="Username">
+    <input id="pass" type="password" placeholder="Password">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+    <p id="loginMsg" style="text-align:center;margin-top:10px;"></p>
+</div>
+
+<!-- SHOP -->
+<div class="shop-box" id="shopBox" style="display:none;">
+    <h2 style="text-align:center;">🎮 Game Shop</h2>
+
+    <div class="product">
+        <h3>ดาบแสง</h3>
+        <p>ราคา: 150 บาท</p>
+        <button onclick="buy()">ซื้อสินค้า</button>
+    </div>
+
+    <h3>ใส่คีย์สินค้า</h3>
+    <input id="keyInput" placeholder="เช่น KEY-TEST">
+    <button onclick="redeemKey()">ยืนยัน</button>
+    <p id="result"></p>
+
+    <button style="margin-top:15px;background:#444;" onclick="logout()">ออกจากระบบ</button>
+</div>
+
+<script>
+    // ---------- Login System ----------
+    function login() {
+        let u = document.getElementById("user").value;
+        let p = document.getElementById("pass").value;
+        let msg = document.getElementById("loginMsg");
+
+        if (u === "admin" && p === "1234") {
+            msg.innerHTML = "เข้าสู่ระบบสำเร็จ!";
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("shopBox").style.display = "block";
+        } else {
+            msg.innerHTML = "❌ ชื่อผู้ใช้หรือรหัสผ่านผิด";
+        }
     }
 
-    // 🔍 เมื่อพิมพ์ชื่อหุ้นแล้วกด Enter
-    document.getElementById("symbolInput").addEventListener("change", e => {
-      const s = e.target.value.trim().toUpperCase();
-      if(s) fetchData(s);
-    });
-  </script>
+    function logout() {
+        document.getElementById("shopBox").style.display = "none";
+        document.getElementById("loginBox").style.display = "block";
+    }
+
+    // ---------- Buy Product ----------
+    function buy() {
+        alert("สั่งซื้อสำเร็จ! (ตัวอย่าง)");
+    }
+
+    // ---------- Key Redeem ----------
+    function redeemKey() {
+        let key = document.getElementById("keyInput").value;
+        let result = document.getElementById("result");
+
+        if (key === "KEY-TEST") {
+            result.innerHTML = "✔ ปลดล็อกสำเร็จ!";
+        } else {
+            result.innerHTML = "❌ คีย์ไม่ถูกต้อง";
+        }
+    }
+
+    // ---------- Theme Change ----------
+    function changeTheme(theme) {
+        document.body.className = theme;
+    }
+</script>
+
 </body>
 </html>
